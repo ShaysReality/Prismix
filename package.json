@@ -1,0 +1,19 @@
+{
+  "name": "prismix-monorepo",
+  "private": true,
+  "version": "0.1.0",
+  "workspaces": [
+    "packages/*",
+    "examples/*"
+  ],
+  "scripts": {
+    "build": "npm --ws run build",
+    "dev": "npm --ws run dev",
+    "lint": "eslint . --ext .ts,.tsx || true",
+    "generate": "node packages/cli/dist/index.js generate -c examples/blog/prismix.config.json"
+  },
+  "devDependencies": {
+    "eslint": "^8.57.0",
+    "typescript": "^5.5.4"
+  }
+}

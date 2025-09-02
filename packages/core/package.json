@@ -1,0 +1,46 @@
+{
+  "name": "prismix-core",
+  "version": "0.1.0",
+  "description": "Prisma \u2192 Zod + JSON Schema + OpenAPI codegen core",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/you/prismix.git"
+  },
+  "bugs": {
+    "url": "https://github.com/you/prismix/issues"
+  },
+  "homepage": "https://github.com/you/prismix#readme",
+  "keywords": [
+    "prisma",
+    "zod",
+    "openapi",
+    "json-schema",
+    "codegen",
+    "typescript"
+  ],
+  "license": "MIT",
+  "files": [
+    "dist"
+  ],
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "engines": {
+    "node": ">=18"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "@prisma/internals": "^5.15.0",
+    "zod": "^3.23.8",
+    "zod-to-json-schema": "^3.23.5",
+    "openapi3-ts": "^4.3.2"
+  },
+  "devDependencies": {
+    "typescript": "^5.5.4"
+  }
+}
