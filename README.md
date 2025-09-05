@@ -3,26 +3,26 @@
 Prisma → Zod + JSON Schema + OpenAPI (3.1) codegen.  
 Keep validation and API contracts in sync from a single source of truth: `schema.prisma`.
 
-**Current:** `v0.2.0`  
+**Current: v0.2.0**  
 - Zod inputs: `*CreateInput` / `*UpdateInput`  
 - Optional OpenAPI CRUD paths (`emitPaths`)  
-- `prismix init` and `--watch`  
-- JSON Schema includes enum values + required fields  
+- CLI `prismix init` and `--watch`  
+- JSON Schema includes enum values and required fields  
 - SQLite-friendly mode (`sqliteFriendly`)
 
 ---
 
-## Table of Contents
+## Table of contents
 
 - [Why Prismix](#why-prismix)
 - [Requirements](#requirements)
-- [Install & Quickstart](#install--quickstart)
-- [Using the CLI](#using-the-cli)
+- [Install and quickstart](#install-and-quickstart)
+- [CLI usage](#cli-usage)
 - [Configuration](#configuration)
-- [Generated Outputs](#generated-outputs)
-- [Example Prisma Schema](#example-prisma-schema)
-- [SQLite Notes](#sqlite-notes)
-- [How It Works](#how-it-works)
+- [Generated outputs](#generated-outputs)
+- [Example Prisma schema](#example-prisma-schema)
+- [SQLite notes](#sqlite-notes)
+- [How it works](#how-it-works)
 - [Troubleshooting](#troubleshooting)
 - [Roadmap](#roadmap)
 - [Changelog](#changelog)
@@ -33,31 +33,35 @@ Keep validation and API contracts in sync from a single source of truth: `schema
 
 ## Why Prismix
 
-- **One schema, many artifacts**: generate Zod, JSON Schema, and OpenAPI from Prisma.
-- **No drift**: re-run the generator on model changes.
-- **Simple DX**: tiny CLI, sensible defaults, Windows-friendly.
+- **One schema, many artifacts**: generate Zod, JSON Schema, and OpenAPI from Prisma.  
+- **No drift**: re-run the generator whenever your models change.  
+- **Simple DX**: small CLI, sensible defaults, Windows-friendly.
 
 ---
 
 ## Requirements
 
-- Node 18+ (20/22 OK)
-- Prisma 5+
+- Node 18+ (20/22 OK)  
+- Prisma 5+  
 - A Prisma schema (`schema.prisma`)
 
 ---
 
-## Install & Quickstart
+## Install and quickstart
 
-```bash
+~~~bash
 # from repo root
 npm i
 npm run generate
-Outputs land in the example at examples/blog/generated/.
+~~~
 
-Using the CLI
-bash
-Copy code
+Outputs land in the example at `examples/blog/generated/`.
+
+---
+
+## CLI usage
+
+~~~bash
 # create a config in the current directory
 prismix init
 # or specify paths
@@ -68,16 +72,21 @@ prismix generate -c prismix.config.json
 
 # watch schema + config and regenerate on change
 prismix generate -c prismix.config.json --watch
-If you’re using the repo’s scripts:
+~~~
 
-bash
-Copy code
+If you prefer the repo scripts:
+
+~~~bash
 npm run generate
-Configuration
-prismix.config.json
+~~~
 
-json
-Copy code
+---
+
+## Configuration
+
+Create `prismix.config.json`:
+
+~~~json
 {
   "schema": "./prisma/schema.prisma",
   "outDir": "./generated",
@@ -85,36 +94,30 @@ Copy code
   "emitPaths": true,
   "sqliteFriendly": false
 }
-emitInputs: generate *CreateInput / *UpdateInput Zod types
+~~~
 
-emitPaths: add basic CRUD paths to openapi.json
+- `emitInputs`: generate `*CreateInput` / `*UpdateInput` Zod types  
+- `emitPaths`: add basic CRUD paths to `openapi.json`  
+- `sqliteFriendly`: transform enums and list scalars for SQLite
 
-sqliteFriendly: transform enums and list scalars for SQLite
+---
 
-Generated Outputs
-Zod models → generated/zod/index.ts
+## Generated outputs
 
-Zod inputs → generated/zod/inputs.ts
+- **Zod models** → `generated/zod/index.ts`  
+- **Zod inputs** → `generated/zod/inputs.ts`  
+- **JSON Schema** → `generated/json-schema/*.json`  
+- **OpenAPI 3.1** → `generated/openapi.json`  
+  If `emitPaths: true`, includes:
+  - `GET /{models}`
+  - `POST /{models}`
+  - `GET /{models}/{id}`
+  - `PATCH /{models}/{id}`
+  - `DELETE /{models}/{id}`
 
-JSON Schema → generated/json-schema/*.json
+**Example usage**
 
-OpenAPI 3.1 → generated/openapi.json
-If emitPaths: true, includes:
-
-GET /{models}
-
-POST /{models}
-
-GET /{models}/{id}
-
-PATCH /{models}/{id}
-
-DELETE /{models}/{id}
-
-Example usage
-
-ts
-Copy code
+~~~ts
 import { UserSchema } from "./generated/zod/index";
 import { UserCreateInput } from "./generated/zod/inputs";
 
@@ -124,11 +127,15 @@ UserCreateInput.parse({
   role: "USER",
   posts: [{ connect: { id: 1 } }]
 });
-Example Prisma Schema
-Postgres provider so enums + scalar lists work in the example.
+~~~
 
-prisma
-Copy code
+---
+
+## Example Prisma schema
+
+> Postgres provider so enums and scalar lists work in the example.
+
+~~~prisma
 generator client {
   provider = "prisma-client-js"
 }
@@ -162,75 +169,101 @@ model Post {
   tags      String[]
   createdAt DateTime @default(now())
 }
-SQLite Notes
+~~~
+
+---
+
+## SQLite notes
+
 SQLite doesn’t support enums or scalar lists.
 
 Options:
-
-Switch provider to Postgres/MySQL, or
-
-Enable sqliteFriendly: true, which converts:
-
-enums → string (enum values preserved in JSON Schema)
-
-list scalars → Json
+- Switch provider to Postgres/MySQL, **or**
+- Enable `sqliteFriendly: true`, which converts:
+  - enums → `string` (values preserved in JSON Schema)
+  - scalar lists → `Json`
 
 Manual alternative for the example:
+- `tags String[]` → `tags Json`  
+- `role Role` → `role String`
 
-tags String[] → tags Json
+---
 
-role Role → role String
+## How it works
 
-How It Works
-Parse schema.prisma via DMMF.
+1. Parse `schema.prisma` via DMMF.  
+2. Emit Zod models.  
+3. Emit Zod inputs (`*CreateInput` / `*UpdateInput`).  
+4. Build JSON Schemas from DMMF (no eval).  
+5. Build OpenAPI components (+ optional CRUD paths).
 
-Emit Zod models.
+---
 
-Emit Zod inputs (*CreateInput / *UpdateInput).
+## Troubleshooting
 
-Build JSON Schemas from DMMF (no eval).
+**P1012 about enums/lists**  
+Using SQLite with enums or list scalars. Switch provider or set `sqliteFriendly: true`.
 
-Build OpenAPI components (+ optional CRUD paths).
+**“Cannot use import statement outside a module”**  
+Everything ships as CommonJS. If you edited builds, keep CJS or rename ESM entrypoints to `.cjs`.
 
-Troubleshooting
-P1012 about enums/lists
-Using SQLite with enums or list scalars. Switch provider or set sqliteFriendly: true.
+**CLI entry not found**  
+Use `packages/cli/dist/index.cjs` or `npm run generate`.
 
-“Cannot use import statement outside a module”
-Everything ships as CommonJS. If you edited builds, keep CJS or rename ESM entrypoints to .cjs.
-
-Module not found for CLI entry
-Use packages/cli/dist/index.cjs or run npm run generate.
-
-Windows
+**Windows**  
 PowerShell/cmd works. Node 18+ recommended.
 
-Roadmap
-Relation envelope refinements (connectOrCreate, upsert)
+---
 
-Zod shapes for findUnique, findMany params
+## Roadmap
 
-OpenAPI request/response examples + tags
+- Relation envelope refinements (`connectOrCreate`, `upsert`)  
+- Zod shapes for `findUnique` / `findMany` params  
+- OpenAPI request/response examples and tags  
+- Better pluralization and path naming hooks  
+- Per-model include/exclude in config  
+- `decimal.js` integration and richer JSON handling  
+- VS Code on-save integration
 
-Better pluralization and path naming hooks
+---
 
-Per-model include/exclude in config
+## Changelog
 
-decimal.js integration and richer JSON handling
+See [CHANGELOG.md](./CHANGELOG.md).
 
-VS Code on-save integration
+---
 
-Changelog
-See CHANGELOG.md.
+## Contributing
 
-Contributing
-Issues and PRs welcome. Areas that are easy to jump into:
+Issues and PRs welcome. Easy places to start:
+- Relation input refinements
+- OpenAPI path details (parameters/examples)
+- SQLite mapping improvements
+- Docs and examples
 
-Relation input refinements
+---
 
-OpenAPI path details (parameters/examples)
+## License
 
-SQLite mapping improvements
+MIT License
 
-Docs & examples
+Copyright (c) 2025 Shay
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
 
