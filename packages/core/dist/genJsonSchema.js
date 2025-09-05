@@ -1,6 +1,7 @@
-// Generate JSON Schemas directly from Prisma DMMF models (no eval)
-function jsonSchemaFromField(field) {
+// packages/core/dist/genJsonSchema.js
+function jsonSchemaFromField(field, enumMap) {
   let schema = { type: 'string' };
+
   if (field.kind === 'scalar') {
     switch (field.type) {
       case 'Int': schema = { type: 'integer' }; break;
@@ -15,23 +16,36 @@ function jsonSchemaFromField(field) {
       default: schema = { type: 'string' };
     }
     if (field.isList) schema = { type: 'array', items: schema };
-  } else if (field.kind === 'enum') {
-    schema = { type: 'string' }; // could include enum values later
-    if (field.isList) schema = { type: 'array', items: schema };
-  } else if (field.kind === 'object') {
-    schema = {}; // relation placeholder
-    if (field.isList) schema = { type: 'array', items: schema };
+    return schema;
   }
+
+  if (field.kind === 'enum') {
+    const values = enumMap.get(field.type) || [];
+    schema = { type: 'string', enum: values };
+    if (field.isList) schema = { type: 'array', items: { type: 'string', enum: values } };
+    return schema;
+  }
+
+  if (field.kind === 'object') {
+    // relation placeholder
+    schema = {};
+    if (field.isList) schema = { type: 'array', items: {} };
+    return schema;
+  }
+
   return schema;
 }
 
-function toJsonSchemasFromDmmf(models) {
+function toJsonSchemasFromDmmf(models, enums) {
+  const enumMap = new Map();
+  for (const e of enums || []) enumMap.set(e.name, e.values.map(v => v.name));
+
   const out = {};
   for (const m of models) {
     const props = {};
     const required = [];
     for (const f of m.fields) {
-      props[f.name] = jsonSchemaFromField(f);
+      props[f.name] = jsonSchemaFromField(f, enumMap);
       if (f.isRequired) required.push(f.name);
     }
     const obj = { type: 'object', properties: props, additionalProperties: false };

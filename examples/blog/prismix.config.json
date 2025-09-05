@@ -1,4 +1,7 @@
 {
   "schema": "./prisma/schema.prisma",
-  "outDir": "./generated"
+  "outDir": "./generated",
+  "emitInputs": true,
+  "emitPaths": true,
+  "sqliteFriendly": false
 }
