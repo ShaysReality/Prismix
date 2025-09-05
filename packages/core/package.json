@@ -1,7 +1,7 @@
 {
   "name": "prismix-core",
-  "version": "0.1.0",
-  "description": "Prisma \u2192 Zod + JSON Schema + OpenAPI codegen core",
+  "version": "0.2.0",
+  "description": "Prisma → Zod + JSON Schema + OpenAPI codegen core",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/you/prismix.git"

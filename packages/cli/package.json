@@ -1,7 +1,7 @@
 {
   "name": "prismix-cli",
-  "version": "0.1.0",
-  "description": "CLI for Prismix (Prisma \u2192 Zod + JSON Schema + OpenAPI)",
+  "version": "0.2.0",
+  "description": "CLI for Prismix (Prisma → Zod + JSON Schema + OpenAPI)",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/you/prismix.git"
@@ -39,9 +39,9 @@
     "dev": "tsup src/index.ts --watch --format esm,cjs --dts"
   },
   "dependencies": {
-    "@prismix/core": "^0.1.0",
     "commander": "^12.1.0",
-    "kolorist": "^1.8.0"
+    "kolorist": "^1.8.0",
+    "prismix-core": "file:../core"
   },
   "devDependencies": {
     "tsup": "^8.1.0",
