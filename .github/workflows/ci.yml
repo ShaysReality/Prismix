@@ -1,27 +1,50 @@
-name: ci
+name: CI
+
 on:
   push:
     branches: [ main ]
   pull_request:
 
 jobs:
-  build:
+  build-and-generate:
     runs-on: ubuntu-latest
+
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - name: Checkout
+        uses: actions/checkout@v4
         with:
-          node-version: 20
-      - name: Install
-        run: npm i
-      - name: Build packages
+          fetch-depth: 0
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Show versions
         run: |
-          npm -w @prismix/core run build
-          npm -w @prismix/cli run build
-      - name: Generate example
+          node -v
+          npm -v
+
+      - name: Install
+        run: |
+          if [ -f package-lock.json ]; then
+            npm ci
+          else
+            npm i
+          fi
+
+      # If dist/ is NOT committed, uncomment this and ensure "npm run build" exists:
+      # - name: Build
+      #   run: npm run build
+
+      - name: Generate code
         run: npm run generate
-      - name: Upload generated artifact
+
+      - name: Upload generated outputs
         uses: actions/upload-artifact@v4
         with:
-          name: generated
-          path: examples/blog/generated
+          name: prismix-generated
+          path: |
+            examples/**/generated/**
+          if-no-files-found: ignore
