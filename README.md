@@ -1,134 +1,131 @@
 # Prismix
 
-**Prisma → Zod + JSON Schema + OpenAPI (3.1) codegen.**  
-Keep your app’s validation and API contracts in sync from one source of truth: `schema.prisma`.
+Prisma → Zod + JSON Schema + OpenAPI (3.1) codegen.  
+Keep validation and API contracts in sync from a single source of truth: `schema.prisma`.
 
-> **v0.1.1** highlights  
-> - JSON Schema is generated **directly from DMMF** (no `eval`)  
-> - Example uses **PostgreSQL** provider so **enums** + **scalar lists** work  
-> - Prebuilt CLI/Core for a smoother Windows experience
+**Current:** `v0.2.0`  
+- Zod inputs: `*CreateInput` / `*UpdateInput`  
+- Optional OpenAPI CRUD paths (`emitPaths`)  
+- `prismix init` and `--watch`  
+- JSON Schema includes enum values + required fields  
+- SQLite-friendly mode (`sqliteFriendly`)
 
 ---
 
-## Table of contents
+## Table of Contents
 
-- [What it does](#what-it-does)
+- [Why Prismix](#why-prismix)
 - [Requirements](#requirements)
-- [Monorepo layout](#monorepo-layout)
-- [Install & quickstart (this repo)](#install--quickstart-this-repo)
-- [CLI usage in your own app](#cli-usage-in-your-own-app)
+- [Install & Quickstart](#install--quickstart)
+- [Using the CLI](#using-the-cli)
 - [Configuration](#configuration)
-- [Example Prisma schema](#example-prisma-schema)
-- [Generated outputs](#generated-outputs)
-- [How it works](#how-it-works)
+- [Generated Outputs](#generated-outputs)
+- [Example Prisma Schema](#example-prisma-schema)
+- [SQLite Notes](#sqlite-notes)
+- [How It Works](#how-it-works)
 - [Troubleshooting](#troubleshooting)
-- [SQLite vs Postgres (enums & lists)](#sqlite-vs-postgres-enums--lists)
-- [Development (from source)](#development-from-source)
-- [CI (GitHub Actions)](#ci-github-actions)
-- [Versioning & releases](#versioning--releases)
-- [Changelog](#changelog)
 - [Roadmap](#roadmap)
+- [Changelog](#changelog)
 - [Contributing](#contributing)
 - [License](#license)
 
 ---
 
-## What it does
+## Why Prismix
 
-- **Zod**: Generates `z.object()` schemas for each Prisma model.
-- **JSON Schema**: Emits per-model JSON Schemas **directly from Prisma DMMF**.
-- **OpenAPI 3.1**: Produces `components.schemas` for each model.
-- **Zero drift**: Rebuild outputs whenever your models change.
-- **Simple CLI**: `prismix generate -c prismix.config.json`.
-
-**Limitations (MVP):**
-- Relations in Zod are emitted as `any` (placeholders).
-- OpenAPI: components only (no CRUD paths yet).
-- Some scalars simplified (e.g., `Decimal` → `number`).
+- **One schema, many artifacts**: generate Zod, JSON Schema, and OpenAPI from Prisma.
+- **No drift**: re-run the generator on model changes.
+- **Simple DX**: tiny CLI, sensible defaults, Windows-friendly.
 
 ---
 
 ## Requirements
 
-- **Node 18+** (Node 20/22 ok)
-- **Prisma 5+** (as a dev dependency in your app)
-- A **Prisma schema** (`schema.prisma`)
-
-> The example in this repo uses `provider = "postgresql"` to allow enums and scalar lists.
+- Node 18+ (20/22 OK)
+- Prisma 5+
+- A Prisma schema (`schema.prisma`)
 
 ---
 
-## Monorepo layout
-
-.
-├─ packages/
-│ ├─ core/ # codegen core (CommonJS)
-│ └─ cli/ # CLI wrapper (CommonJS)
-├─ examples/
-│ └─ blog/
-│ ├─ prisma/schema.prisma
-│ └─ prismix.config.json
-└─ generated/ # created by the CLI (zod/, json-schema/, openapi.json)
-
-yaml
-Copy code
-
----
-
-## Install & quickstart (this repo)
+## Install & Quickstart
 
 ```bash
 # from repo root
 npm i
 npm run generate
-Outputs land in examples/blog/generated/:
+Outputs land in the example at examples/blog/generated/.
 
-pgsql
+Using the CLI
+bash
 Copy code
-generated/
-  zod/
-    index.ts
-  json-schema/
-    User.json
-    Post.json
-  openapi.json
-CLI usage in your own app
-When published to npm:
+# create a config in the current directory
+prismix init
+# or specify paths
+prismix init --schema ./prisma/schema.prisma --out ./generated
+
+# one-off generation
+prismix generate -c prismix.config.json
+
+# watch schema + config and regenerate on change
+prismix generate -c prismix.config.json --watch
+If you’re using the repo’s scripts:
 
 bash
 Copy code
-# in your app repo
-npm i -D prismix-core
-npm i -g prismix-cli       # or: npx prismix-cli …
-
-# config (at your repo root)
-echo "{\"schema\":\"./prisma/schema.prisma\",\"outDir\":\"./generated\"}" > prismix.config.json
-
-# run
-prismix generate -c prismix.config.json
-Use the generated Zod in your code:
-
-ts
-Copy code
-import { UserSchema } from "./generated/zod/index";
-// e.g. validating a request body
-UserSchema.parse(req.body);
+npm run generate
 Configuration
-prismix.config.json (paths are relative to the config file)
+prismix.config.json
 
 json
 Copy code
 {
   "schema": "./prisma/schema.prisma",
-  "outDir": "./generated"
+  "outDir": "./generated",
+  "emitInputs": true,
+  "emitPaths": true,
+  "sqliteFriendly": false
 }
-schema: path to your Prisma schema
+emitInputs: generate *CreateInput / *UpdateInput Zod types
 
-outDir: output folder (creates zod/, json-schema/, and openapi.json)
+emitPaths: add basic CRUD paths to openapi.json
 
-Example Prisma schema
-The example uses PostgreSQL so enums + scalar lists work.
-If you’re on SQLite, see the FAQ below.
+sqliteFriendly: transform enums and list scalars for SQLite
+
+Generated Outputs
+Zod models → generated/zod/index.ts
+
+Zod inputs → generated/zod/inputs.ts
+
+JSON Schema → generated/json-schema/*.json
+
+OpenAPI 3.1 → generated/openapi.json
+If emitPaths: true, includes:
+
+GET /{models}
+
+POST /{models}
+
+GET /{models}/{id}
+
+PATCH /{models}/{id}
+
+DELETE /{models}/{id}
+
+Example usage
+
+ts
+Copy code
+import { UserSchema } from "./generated/zod/index";
+import { UserCreateInput } from "./generated/zod/inputs";
+
+UserSchema.parse(req.body);
+UserCreateInput.parse({
+  email: "dev@site.com",
+  role: "USER",
+  posts: [{ connect: { id: 1 } }]
+});
+Example Prisma Schema
+Postgres provider so enums + scalar lists work in the example.
 
 prisma
 Copy code
@@ -138,7 +135,6 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  // Only used for parsing; no DB connection is made during generation.
   url      = "postgresql://user:pass@localhost:5432/prismix_demo"
 }
 
@@ -166,119 +162,75 @@ model Post {
   tags      String[]
   createdAt DateTime @default(now())
 }
-Generated outputs
-Zod → generated/zod/index.ts
+SQLite Notes
+SQLite doesn’t support enums or scalar lists.
 
-JSON Schema → generated/json-schema/*.json
+Options:
 
-OpenAPI 3.1 → generated/openapi.json
+Switch provider to Postgres/MySQL, or
 
-How it works
-Parse Prisma schema → DMMF
+Enable sqliteFriendly: true, which converts:
 
-Emit Zod validators
+enums → string (enum values preserved in JSON Schema)
 
-Convert DMMF → JSON Schema (no eval)
+list scalars → Json
 
-Convert DMMF → OpenAPI components
+Manual alternative for the example:
+
+tags String[] → tags Json
+
+role Role → role String
+
+How It Works
+Parse schema.prisma via DMMF.
+
+Emit Zod models.
+
+Emit Zod inputs (*CreateInput / *UpdateInput).
+
+Build JSON Schemas from DMMF (no eval).
+
+Build OpenAPI components (+ optional CRUD paths).
 
 Troubleshooting
-Prisma P1012 (enums/lists)
-
-rust
-Copy code
-Field "tags" in model "Post" can't be a list…
-You defined the enum `Role`. But the current connector does not support enums.
-You’re likely on SQLite with enums or scalar lists. Switch provider to Postgres/MySQL, or see the SQLite notes below.
+P1012 about enums/lists
+Using SQLite with enums or list scalars. Switch provider or set sqliteFriendly: true.
 
 “Cannot use import statement outside a module”
-Fixed in v0.1.1 (no eval). If you edited code locally, keep everything CommonJS or add .js extensions for ESM.
+Everything ships as CommonJS. If you edited builds, keep CJS or rename ESM entrypoints to .cjs.
 
-“Cannot find module …/dist/index.cjs”
-Run npm run generate (prebuilt includes dist). If building from source, run npm run build first.
+Module not found for CLI entry
+Use packages/cli/dist/index.cjs or run npm run generate.
 
 Windows
-Use PowerShell or cmd. Node 18+ recommended. Paths with spaces are ok.
-
-SQLite vs Postgres (enums & lists)
-Feature	SQLite	Postgres/MySQL
-Enums (enum Role { ... })	❌	✅
-Scalar lists (String[])	❌	✅
-
-SQLite workarounds:
-
-Replace tags String[] → tags Json
-
-Replace role Role → role String (or model enums as lookup tables)
-
-Development (from source)
-bash
-Copy code
-npm run build      # builds core & cli
-npm run generate   # runs codegen on the example config
-Common scripts
-
-npm run build — builds core & cli
-
-npm run generate — runs CLI on examples/blog/prismix.config.json
-
-CI (GitHub Actions)
-Included at .github/workflows/ci.yml:
-
-Install
-
-Build
-
-Generate
-
-Upload generated/ as artifact
-
-You can extend to fail on drift by comparing committed generated/ to fresh output.
-
-Versioning & releases
-bash
-Copy code
-# bump versions to 0.1.1
-npm version 0.1.1 -w prismix-core
-npm version 0.1.1 -w prismix-cli
-npm version 0.1.1
-npm pkg set dependencies.prismix-core="^0.1.1" -w prismix-cli
-
-# tag + push
-git add -A
-git commit -m "chore(release): v0.1.1"
-git tag v0.1.1
-git push origin main --tags
-
-# (optional) publish to npm
-npm login
-npm publish -w prismix-core --access public
-npm publish -w prismix-cli  --access public
-Changelog
-See the full history in CHANGELOG.md.
-Latest (v0.1.1): JSON Schema from DMMF (no eval), Postgres example for enums & lists, prebuilt CJS CLI/Core.
+PowerShell/cmd works. Node 18+ recommended.
 
 Roadmap
-Relation-aware Zod shapes for create/update (connect/create)
+Relation envelope refinements (connectOrCreate, upsert)
 
-OpenAPI CRUD path generation
+Zod shapes for findUnique, findMany params
 
-Decimal refinements (decimal.js) + improved JSON handling
+OpenAPI request/response examples + tags
 
---watch mode & GitHub Action for codegen drift
+Better pluralization and path naming hooks
 
-VS Code extension (on-save generate)
+Per-model include/exclude in config
+
+decimal.js integration and richer JSON handling
+
+VS Code on-save integration
+
+Changelog
+See CHANGELOG.md.
 
 Contributing
-PRs and issues welcome! Good first issues:
+Issues and PRs welcome. Areas that are easy to jump into:
 
-Relation shapes
+Relation input refinements
 
-OpenAPI paths
+OpenAPI path details (parameters/examples)
 
-Decimal/JSON refinements
+SQLite mapping improvements
 
-Watch mode
-
-Docs examples & GIFs
+Docs & examples
 
