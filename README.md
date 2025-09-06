@@ -9,7 +9,7 @@
 Prisma → Zod + JSON Schema + OpenAPI (3.1) codegen.  
 Keep validation and API contracts in sync from a single source of truth: `schema.prisma`.
 
-**Current: v0.2.0**  
+**Current: v0.2.2**  
 - Zod inputs: `*CreateInput` / `*UpdateInput`  
 - Optional OpenAPI CRUD paths (`emitPaths`)  
 - CLI `prismix init` and `--watch`  
