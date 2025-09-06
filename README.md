@@ -1,7 +1,8 @@
 
 [![GitHub stars](https://img.shields.io/github/stars/ShaysReality/Prismix?style=social)](https://github.com/ShaysReality/Prismix)
-[![CI](https://img.shields.io/github/actions/workflow/status/ShaysReality/Prismix/ci.yml?label=CI)](../../actions)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE)
+[![CI](https://github.com/ShaysReality/Prismix/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/ShaysReality/Prismix/actions/workflows/ci.yml)
+
 
 # Prismix
 

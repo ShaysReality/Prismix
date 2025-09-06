@@ -1,6 +1,6 @@
 {
   "name": "prismix-cli",
-  "version": "0.2.0",
+  "version": "0.2.2",
   "description": "CLI for Prismix (Prisma → Zod + JSON Schema + OpenAPI)",
   "repository": {
     "type": "git",
@@ -22,7 +22,7 @@
   "files": [
     "dist"
   ],
-  "type": "module",
+  "type": "commonjs",
   "bin": {
     "prismix": "dist/index.js"
   },

@@ -3,8 +3,9 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
-  url      = "file:./dev.db"
+  provider = "postgresql"
+  // Only used for parsing; no DB connection is made during generation.
+  url      = "postgresql://user:pass@localhost:5432/prismix_demo"
 }
 
 enum Role {

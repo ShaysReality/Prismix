@@ -3,7 +3,7 @@ const { program } = require('commander');
 const { blue, green, yellow } = require('kolorist');
 const path = require('path');
 const fs = require('fs/promises');
-const { generate } = require('../../core/dist/index.js'); // relative to workspace
+const { generate } = require('../../core/dist/index.cjs'); // relative to workspace
 
 program
   .name('prismix')
